@@ -1,0 +1,19 @@
+{
+  "name": "01-basics",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "app": "trap 'docker-compose down ; echo Stopped ; exit 0' SIGINT; docker-compose up -d && sleep 2 && DATABASE_URL=postgres://docker:docker@localhost:5431/postgres ts-node",
+    "01-basics": "npm run app -- 01-basics/index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@balena/pinejs": "^14.51.0",
+    "axios": "^1.1.2",
+    "express": "^4.18.2",
+    "ts-node": "^10.9.1"
+  }
+}
