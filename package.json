@@ -12,6 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "@balena/pinejs": "^14.51.0",
+    "@faker-js/faker": "^7.6.0",
     "axios": "^1.1.2",
     "express": "^4.18.2",
     "ts-node": "^10.9.1"
