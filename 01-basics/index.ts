@@ -1,7 +1,7 @@
 import { Server } from 'http';
 import axios from 'axios';
 import { init } from '../lib/pine-init';
-import { randomString } from '../lib/random-data-generator';
+import { faker } from '@faker-js/faker';
 
 const HOST = "http://localhost:1337"
 
@@ -29,19 +29,83 @@ async function runRequests() {
         console.log(`${JSON.stringify(response.data, null, 2)}`);
     })
 
-    // write 50 students to the database
-    for (let i = 0; i < 50; i++) {
-        await axios.post(HOST + "/university/student", { name: randomString(16), lastname: randomString(16) }).catch((err: any) => {
+
+    // create campuses and subjects
+    const campuses = [
+        { campusId: undefined, subjectId: undefined, name: 'Faculty of Quantum Physics', subject: 'physics' },
+        { campusId: undefined, subjectId: undefined, name: 'Department of Theoretical Physics', subject: 'physics' },
+        { campusId: undefined, subjectId: undefined, name: 'Department of Linguistics and Philosophy', subject: 'linguistics' },
+        { campusId: undefined, subjectId: undefined, name: 'Faculty of Natural Language Processing', subject: 'linguistics' },
+        { campusId: undefined, subjectId: undefined, name: 'Faculty of Oceanography', subject: 'biology' },
+        { campusId: undefined, subjectId: undefined, name: 'Department of Plant Biology, Ecology, and Evolution', subject: 'biology' }
+    ]
+
+
+    // create subjects and campuses
+    for (const campus of campuses) {
+        // try if the subject already exists, otherwise create it.
+        await axios.get(HOST + `/university/subject?$filter=name eq '${campus.subject}'`).then((response) => {
+            campus['subjectId'] = response?.data?.d?.[0]?.id
+        }).catch((err: any) => {
+            console.log(`Should not error ${err}`)
+        })
+
+        if (!campus['subjectId']) {
+            await axios.post(HOST + "/university/subject", { name: campus.subject }).then((response) => {
+                campus['subjectId'] = response?.data?.id
+            }).catch((err: any) => {
+                console.log(`Should not error ${err}`)
+            })
+        }
+
+        // try if the subject already exists, otherwise create it.
+        await axios.get(HOST + `/university/campus?$filter=name eq '${campus.name}'`).then((response) => {
+            campus['campusId'] = response?.data?.d?.[0]?.id
+        })
+
+        if (!campus['campusId']) {
+            await axios.post(HOST + "/university/campus", { name: campus.name }).then((response) => {
+                campus['campusId'] = response?.data?.id
+            }).catch((err: any) => {
+                console.log(`Should not error ${err}`)
+            })
+        }
+
+        await axios.post(HOST + "/university/campus__offers__subject", { campus: campus['campusId'], offers__subject: campus['subjectId'] }).catch((err: any) => {
             console.log(`Should not error ${err}`)
         })
     }
 
-    await axios.post(HOST + "/university/student", { name: "Grace", lastname: "Hopper" }).catch((err: any) => {
-        console.log(`Should not error ${err}`)
-    })
-    await axios.post(HOST + "/university/student", { name: "Grace", lastname: "Jones" }).catch((err: any) => {
-        console.log(`Should not error ${err}`)
-    })
+
+
+    const createStudentWithRandomCampusAndSubject = async (name: string, lastname: string) => {
+        let studentId;
+        await axios.post(HOST + "/university/student", { name: name, lastname: lastname }).then((response) => {
+            studentId = response?.data?.id
+        }).catch((err: any) => {
+            console.log(`Should not error ${err}`)
+        })
+
+        const campusIdx = faker.datatype.number(campuses.length - 1)
+        const campus = campuses[campusIdx];
+
+        await axios.post(HOST + "/university/student__studies__subject", { student: studentId, studies__subject: campus['subjectId'] }).catch((err: any) => {
+            console.log(`Should not error ${err}`)
+        })
+
+        await axios.post(HOST + "/university/student__is_member_of__campus", { student: studentId, is_member_of__campus: campus['subjectId'] }).catch((err: any) => {
+            console.log(`Should not error ${err}`)
+        })
+    }
+
+
+    // create 50 students
+    for (let i = 0; i < 50; i++) {
+        await createStudentWithRandomCampusAndSubject(faker.name.firstName(), faker.name.lastName())
+    }
+
+    createStudentWithRandomCampusAndSubject('Grace', 'Hopper');
+    createStudentWithRandomCampusAndSubject('Grace', 'Jones');
 
     // get all students (verbose thus commented)
     // await axios.get(HOST + "/university/student').then((response) => {
@@ -93,15 +157,26 @@ async function runRequests() {
         console.log(`get students which id > 35 and < 45 ${JSON.stringify(response.data, null, 2)}`);
     })
 
-    // get student which name equal Grace
+    // get student which name is equal Grace
     await axios.get(HOST + "/university/student?$filter=name eq 'Grace'").then((response) => {
         console.log(`get students which name starts with A ${JSON.stringify(response.data, null, 2)}`);
     })
 
-    // get student which name equal Grace and lastname equal Hopper
+    // get student which name is equal Grace and lastname is equal Hopper
     await axios.get(HOST + "/university/student?$filter=name eq 'Grace' and lastname eq 'Hopper'").then((response) => {
         console.log(`get students which name starts with A ${JSON.stringify(response.data, null, 2)}`);
     })
+
+    // get student by id 31 and expand relationship is_member_of__campus with nested expand campus
+    await axios.get(HOST + "/university/student(31)?$expand=is_member_of__campus/campus").then((response) => {
+        console.log(`get student by id 31 and expand relationship is_member_of__campus with nested expand campus ${JSON.stringify(response.data, null, 2)}`);
+    })
+
+    // get all students that are member of campus 'Faculty of Quantum Physics' and expand relationship is_member_of__campus with nested expand campus
+    await axios.get(HOST + "/university/student?$expand=is_member_of__campus/campus&$filter=is_member_of__campus/campus/name eq 'Faculty of Quantum Physics'").then((response) => {
+        console.log(`get all students that are member of campus 'Faculty of Quantum Physics' and expand relationship is_member_of__campus with nested expand campus ${JSON.stringify(response.data, null, 2)}`);
+    })
+
 }
 
 async function run() {
