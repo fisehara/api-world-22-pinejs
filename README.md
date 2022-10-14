@@ -35,7 +35,16 @@ The npm scripts will spin up the database with a `docker compose up` command, ex
 
 ## 01-basics
 
-`npm run 01-basics`
+
+```
+git clone https://github.com/fisehara/api-world-22-pinejs
+cd api-world-22-pinejs
+npm install
+npm run 01-basics
+```
+
+
+![Getting Started](./getting-started.gif)
 
 ## Help
 
