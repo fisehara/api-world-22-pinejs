@@ -1,15 +1,10 @@
 import type { ConfigLoader } from '@balena/pinejs';
-
-const apiRoot = 'university';
-const modelName = 'university';
-const modelFile = __dirname + '/university.sbvr';
-
 export default {
 	models: [
 		{
-			modelName,
-			modelFile,
-			apiRoot,
+			modelName: 'university',
+			modelFile: __dirname + '/university.sbvr',
+			apiRoot: 'university',
 		},
 	],
 	users: [
