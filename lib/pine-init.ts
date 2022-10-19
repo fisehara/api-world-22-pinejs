@@ -3,7 +3,7 @@ import { Request, Response } from 'express';
 import { exit } from 'process';
 import * as pine from '@balena/pinejs';
 import { Server } from 'http';
-
+import { basicUserPasswordAuthorizationMiddleware } from './custom-middleware';
 
 
 export async function init(
@@ -22,6 +22,7 @@ export async function init(
 
 	try {
 		await cleanInit(deleteDb);
+		app.use(basicUserPasswordAuthorizationMiddleware());
 		await pine.init(app, initConfig);
 		await new Promise((resolve) => {
 			server = app.listen(initPort, () => {

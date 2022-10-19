@@ -1,6 +1,6 @@
 Term: name
 	Concept Type: Short Text (Type)
-Term: lastname
+Term: last name
 	Concept Type: Short Text (Type)
 Term: subject
 Fact Type: subject has name
@@ -15,7 +15,7 @@ Fact Type: campus offers subject
 Term: student
 Fact Type: student has name
 	Necessity: each student has exactly one name
-Fact Type: student has lastname
-	Necessity: each student has exactly one lastname
+Fact Type: student has last name
+	Necessity: each student has exactly one last name
 Fact Type: student studies subject
 Fact Type: student is member of campus
