@@ -1,16 +1,20 @@
 Term: name
 	Concept Type: Short Text (Type)
-Term: last name
-	Concept Type: Short Text (Type)
+Term: credit
+	Concept Type: Integer (Type)
 Term: subject
 Fact Type: subject has name
 	Necessity: each subject has exactly one name
 	Necessity: each name is of exactly one subject
+Fact Type: subject has credit
+	Necessity: each subject has at most one credit
 Term: campus
 Fact Type: campus has name
 	Necessity: each campus has exactly one name
 	Necessity: each name is of exactly one campus
 Fact Type: campus offers subject
+Term: last name
+	Concept Type: Short Text (Type)
 
 Term: student
 Fact Type: student has name
@@ -19,3 +23,22 @@ Fact Type: student has last name
 	Necessity: each student has exactly one last name
 Fact Type: student studies subject
 Fact Type: student is member of campus
+
+Term: semester credit
+	Concept Type: Integer (Type)
+Fact Type: student earns semester credit
+	Necessity: each student earns at most one semester credit
+	Necessity: each student that earns a semester credit, earns a semester credit that is greater than or equal to 1 and is less than or equal to 16.
+
+
+Rule: It is necessary that each student that is member of a campus that offers a subject1, studies the subject1.
+
+
+
+Term: professor
+Fact Type: professor has name
+	Necessity: each professor has exactly one name
+Fact Type: professor has last name
+	Necessity: each professor has exactly one last name
+Fact Type: professor teaches subject
+Fact Type: professor is head of campus

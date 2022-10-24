@@ -6,7 +6,10 @@
   "scripts": {
     "app": "trap 'docker-compose down ; echo Stopped ; exit 0' SIGINT; docker-compose up -d && sleep 2 && DATABASE_URL=postgres://docker:docker@localhost:5431/postgres ts-node",
     "01-basics": "npm run app -- 01-basics/index.ts",
+    "generate-static-sql": "node node_modules/@balena/pinejs/bin/sbvr-compiler.js compile",
+    "generate-01-basics-sql": "npm run generate-static-sql -- ./01-basics/university.sbvr ./01-basics/university.sql",
     "03-role-permissions": "npm run app -- 03-role-permissions/index.ts",
+    "04-user-permissions": "npm run app -- 04-user-permissions/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

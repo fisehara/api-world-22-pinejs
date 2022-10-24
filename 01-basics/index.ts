@@ -1,16 +1,22 @@
-import { Server } from 'http';
-import axios from 'axios';
-import { init } from '../lib/pine-init';
-import { faker } from '@faker-js/faker';
-import { fileURLToPath } from 'url';
+import { Server } from "http";
+import axios from "axios";
+import { init } from "../lib/pine-init";
+import { faker } from "@faker-js/faker";
+import { fileURLToPath } from "url";
+import { response } from "express";
 
 const HOST = "http://localhost:1337"
+
+
+
+// namespacing axios to be the http client.
+const httpClient = axios;
 
 let pineInstance: Server | undefined;
 
 async function initPine() {
     // load the config file containing the sbvr path
-    const initConfig = await import('./config');
+    const initConfig = await import("./config");
     pineInstance = await init(
         initConfig.default,
         1337,
@@ -24,85 +30,83 @@ async function deInitPine() {
     });
 }
 
-async function pingServer() {
-    // get ping route
-    await axios.get(HOST + "/ping").then((response) => {
-        console.log(`${JSON.stringify(response.data, null, 2)}`);
-    })
-}
-
-
 // create campuses and subjects
 const campuses = [
-    { campusId: undefined, subjectId: undefined, name: 'Faculty of Quantum Physics', subject: 'physics' },
-    { campusId: undefined, subjectId: undefined, name: 'Department of Theoretical Physics', subject: 'physics' },
-    { campusId: undefined, subjectId: undefined, name: 'Department of Linguistics and Philosophy', subject: 'linguistics' },
-    { campusId: undefined, subjectId: undefined, name: 'Faculty of Natural Language Processing', subject: 'linguistics' },
-    { campusId: undefined, subjectId: undefined, name: 'Faculty of Oceanography', subject: 'biology' },
-    { campusId: undefined, subjectId: undefined, name: 'Department of Plant Biology, Ecology, and Evolution', subject: 'biology' }
+    { campusId: undefined, subjectId: undefined, name: "Faculty of Quantum Physics", subject: "physics" },
+    { campusId: undefined, subjectId: undefined, name: "Department of Theoretical Physics", subject: "physics" },
+    { campusId: undefined, subjectId: undefined, name: "Department of Linguistics and Philosophy", subject: "linguistics" },
+    { campusId: undefined, subjectId: undefined, name: "Faculty of Natural Language Processing", subject: "linguistics" },
+    { campusId: undefined, subjectId: undefined, name: "Faculty of Oceanography", subject: "biology" },
+    { campusId: undefined, subjectId: undefined, name: "Department of Plant Biology, Ecology, and Evolution", subject: "biology" }
 ]
+
+async function createSubjectCampusExample() {
+    await httpClient.post(`${HOST}/university/subject`, { name: "physics", credit: 5 })
+    await httpClient.post(`${HOST}/university/subject`, { name: "biology" })
+
+    // create a faculty for quantum physics
+    await httpClient.post(`${HOST}/university/campus`, { name: "Faculty of Quantum Physics" })
+    // create a faculty for oceanography
+    await httpClient.post(`${HOST}/university/campus`, { name: "Faculty of Oceanography" })
+
+    // Faculty of Quantum Physics offers physics
+    await httpClient.post(`${HOST}/university/campus__offers__subject`, { campus: 1, offers__subject: 1 })
+    // Faculty of Oceanography offers biology
+    await httpClient.post(`${HOST}/university/campus__offers__subject`, { campus: 2, offers__subject: 2 })
+}
+
 
 async function createCampusesAndStudents() {
     // create subjects and campuses
     for (const campus of campuses) {
         // try if the subject already exists, otherwise create it.
-        await axios.get(HOST + `/university/subject?$filter=name eq '${campus.subject}'`).then((response) => {
-            campus['subjectId'] = response?.data?.d?.[0]?.id
-        }).catch((err: any) => {
-            console.log(`Should not error ${err}`)
-        })
+        let response = await httpClient.get(`${HOST}/university/subject?$filter=name eq '${campus.subject}'`)
+        campus["subjectId"] = response?.data?.d?.[0]?.id
 
-        if (!campus['subjectId']) {
-            await axios.post(HOST + "/university/subject", { name: campus.subject }).then((response) => {
-                campus['subjectId'] = response?.data?.id
-            }).catch((err: any) => {
-                console.log(`Should not error ${err}`)
-            })
+
+        if (!campus["subjectId"]) {
+            response = await httpClient.post(`${HOST}/university/subject`, { name: campus.subject })
+            campus["subjectId"] = response?.data?.id
         }
 
         // try if the subject already exists, otherwise create it.
-        await axios.get(HOST + `/university/campus?$filter=name eq '${campus.name}'`).then((response) => {
-            campus['campusId'] = response?.data?.d?.[0]?.id
-        })
+        response = await httpClient.get(`${HOST}/university/campus?$filter=name eq '${campus.name}'`)
+        campus["campusId"] = response?.data?.d?.[0]?.id
 
-        if (!campus['campusId']) {
-            await axios.post(HOST + "/university/campus", { name: campus.name }).then((response) => {
-                campus['campusId'] = response?.data?.id
-            }).catch((err: any) => {
-                console.log(`Should not error ${err}`)
-            })
+        if (!campus["campusId"]) {
+            response = await httpClient.post(`${HOST}/university/campus`, { name: campus.name })
+            campus["campusId"] = response?.data?.id
+
         }
 
-        await axios.post(HOST + "/university/campus__offers__subject", { campus: campus['campusId'], offers__subject: campus['subjectId'] }).catch((err: any) => {
-            console.log(`Should not error ${err}`)
-        })
+        await httpClient.post(`${HOST}/university/campus__offers__subject`, { campus: campus["campusId"], offers__subject: campus["subjectId"] })
     }
 
 }
 
 
 const createStudent = async (name: string, last_name: string, campusId?: number, subjectId?: number): Promise<number | undefined> => {
-    let studentId;
-    await axios.post(HOST + "/university/student", { name: name, last_name: last_name }).then((response) => {
-        studentId = response?.data?.id
-    }).catch((err: any) => {
-        console.log(`Should not error ${err}`)
-    })
+    let response = await httpClient.post(`${HOST}/university/student`, { name: name, last_name: last_name })
+    let studentId = response?.data?.id
+
 
     if (subjectId) {
-        await axios.post(HOST + "/university/student__studies__subject", { student: studentId, studies__subject: subjectId }).catch((err: any) => {
-            console.log(`Should not error ${err}`)
-        })
+        await httpClient.post(`${HOST}/university/student__studies__subject`, { student: studentId, studies__subject: subjectId })
     }
 
     if (campusId) {
-        await axios.post(HOST + "/university/student__is_member_of__campus", { student: studentId, is_member_of__campus: campusId }).catch((err: any) => {
-            console.log(`Should not error ${err}`)
-        })
-    }
-
-    return studentId;
+        let response = await httpClient.post(`${HOST}/university/student__is_member_of__campus`, { student: studentId, is_member_of__campus: 1 })
+        console.log(`response.data:${JSON.stringify(response.data, null, 2)}`);
+response = {
+    "status": 400,
+    "statusText": 'Bad Request',
+    "data": 'It is necessary that each student that is member of a campus that offers a subject1, studies the subject1.'
 }
+        return studentId;
+    }
+}
+
+
 
 async function createStudentsExample() {
     // create 50 students with random campus and subject
@@ -112,155 +116,214 @@ async function createStudentsExample() {
         await createStudent(faker.name.firstName(), faker.name.lastName(), campus.campusId, campus.subjectId);
     }
 
-    createStudent('Grace', 'Hopper');
-    createStudent('Grace', 'Jones');
+    createStudent("Grace", "Hopper");
+    createStudent("Grace", "Jones");
 
 }
 
-async function basicStudentExample() {
+async function basicCrudExample() {
 
-    let studentId: number = 0;
-    // create one student with name and last_name, get unique studentId
-    await axios.post(HOST + "/university/student",
-        { name: "Grace", last_name: "Hopper" }).then((response) => {
-            studentId = response?.data?.id
-        })
-    // patch student last_name by studentId 
-    await axios.patch(HOST + `/university/student(${studentId})`, { last_name: 'Jones' })
-    // get student by studentId
-    await axios.get(HOST + `/university/student(${studentId})`).then((response) => {
-        console.log(`get student by id ${studentId}: ${JSON.stringify(response.data, null, 2)}`);
-    })
+    let data;
+
+    // CRUD
+    // CREATE
+    httpClient.post(`${HOST}/university/subject`, data);
+    // READ
+    httpClient.get(`${HOST}/university/subject`);
+    // UPDATE
+    httpClient.patch(`${HOST}/university/subject`, data);
+    // DELETE
+    httpClient.delete(`${HOST}/university/subject`);
+
+}
+
+
+
+async function basicStudentExample() {
+    let response;
+    // create one student Grace Hopper
+    response = await httpClient.post(`${HOST}/university/student`,
+        { name: "Grace", last_name: "Hopper" })
+
+    let studentId = response?.data?.id
+
+    // update student from Grace Hopper to Grace Jones
+    httpClient.patch(`${HOST}/university/student(${studentId})`, { last_name: "Jones" })
+    // get student by id
+    httpClient.get(`${HOST}/university/student(1)`)
     // delete student by id
-    await axios.delete(HOST + `/university/student(${studentId})`).then((response) => {
-        console.log(`delete student by id ${studentId}`);
-    })
+    httpClient.delete(`${HOST}/university/student(1)`)
 
     // get student by studentId - should be empty now
-    await axios.get(HOST + `/university/student(${studentId})`).then((response) => {
-        console.log(`get student by ${studentId} - should be empty now : ${JSON.stringify(response.data, null, 2)}`);
-    })
+    response = await httpClient.get(`${HOST}/university/student(${studentId})`)
+    console.log(`get student by ${studentId} - should be empty now : ${JSON.stringify(response.data, null, 2)}`);
+
 }
 
 async function extendedStudentExamples() {
     // count all students = 52
-    await axios.get(HOST + "/university/student/$count").then((response) => {
-        console.log(`count all students ${JSON.stringify(response.data, null, 2)}`);
-    })
+    let response = await httpClient.get(`${HOST}/university/student/$count`)
+    console.log(`count all students ${JSON.stringify(response.data, null, 2)}`);
+
     // get top 5 students
-    await axios.get(HOST + "/university/student?$top=5").then((response) => {
-        console.log(`get top 5 students ${JSON.stringify(response.data, null, 2)}`);
-    })
+    response = await httpClient.get(`${HOST}/university/student?$top=5`)
+    console.log(`get top 5 students ${JSON.stringify(response.data, null, 2)}`);
+
     // get skip 10 students top 5 students
-    await axios.get(HOST + "/university/student?$skip=10&$top=5").then((response) => {
-        console.log(`get skip 10 students top 5 students ${JSON.stringify(response.data, null, 2)}`);
-    })
+    response = await httpClient.get(`${HOST}/university/student?$skip=10&$top=5`)
+    console.log(`get skip 10 students top 5 students ${JSON.stringify(response.data, null, 2)}`);
+
     // get top 5 students ordered by name ascending
-    await axios.get(HOST + "/university/student?$orderby=name asc&$top=5").then((response) => {
-        console.log(`get top 5 students ordered by name ascending${JSON.stringify(response.data, null, 2)}`);
-    })
+    response = await httpClient.get(`${HOST}/university/student?$orderby=name asc&$top=5`)
+    console.log(`get top 5 students ordered by name ascending${JSON.stringify(response.data, null, 2)}`);
+
     // get top 5 students ordered by name descending
-    await axios.get(HOST + "/university/student?$orderby=name desc&$top=5").then((response) => {
-        console.log(`get top 5 students ordered by name descending ${JSON.stringify(response.data, null, 2)}`);
-    })
+    response = await httpClient.get(`${HOST}/university/student?$orderby=name desc&$top=5`)
+    console.log(`get top 5 students ordered by name descending ${JSON.stringify(response.data, null, 2)}`);
+
     // get top 5 students after skip 10 ordered by name ascending
-    await axios.get(HOST + "/university/student?$orderby=name asc&$top=5&$skip=10").then((response) => {
-        console.log(`get top 5 students after skip 10 ordered by name ascending ${JSON.stringify(response.data, null, 2)}`);
-    })
+    response = await httpClient.get(`${HOST}/university/student?$orderby=name asc&$top=5&$skip=10`)
+    console.log(`get top 5 students after skip 10 ordered by name ascending ${JSON.stringify(response.data, null, 2)}`);
+
     // get student by id 31
-    await axios.get(HOST + "/university/student(31)").then((response) => {
-        console.log(`get student by id 31 ${JSON.stringify(response.data, null, 2)}`);
-    })
+    response = await httpClient.get(`${HOST}/university/student(31)`)
+    console.log(`get student by id 31 ${JSON.stringify(response.data, null, 2)}`);
+
 
     // get students which name starts with A
-    await axios.get(HOST + "/university/student?$filter=startswith(name,'A')").then((response) => {
-        console.log(`get students which name starts with A ${JSON.stringify(response.data, null, 2)}`);
-    })
+    response = await httpClient.get(`${HOST}/university/student?$filter=startswith(name,'A')`)
+    console.log(`get students which name starts with A ${JSON.stringify(response.data, null, 2)}`);
+
 
     // get students which id > 35 and < 45
-    await axios.get(HOST + "/university/student?$filter=id ge 35 and id le 45").then((response) => {
-        console.log(`get students which id > 35 and < 45 ${JSON.stringify(response.data, null, 2)}`);
-    })
+    response = await httpClient.get(`${HOST}/university/student?$filter=id ge 35 and id le 45`)
+    console.log(`get students which id > 35 and < 45 ${JSON.stringify(response.data, null, 2)}`);
+
 
     // get student which name is equal Grace
-    await axios.get(HOST + "/university/student?$filter=name eq 'Grace'").then((response) => {
-        console.log(`get student which name is equal Grace ${JSON.stringify(response.data, null, 2)}`);
-    })
+    response = await httpClient.get(`${HOST}/university/student?$filter=name eq 'Grace'`)
+    console.log(`get student which name is equal Grace ${JSON.stringify(response.data, null, 2)}`);
+
 
     // get student which name is equal Grace and last_name is equal Hopper
-    await axios.get(HOST + "/university/student?$filter=name eq 'Grace' and last_name eq 'Hopper'").then((response) => {
-        console.log(`get student which name is equal Grace and last_name is equal Hopper${JSON.stringify(response.data, null, 2)}`);
-    })
+    response = await httpClient.get(`${HOST}/university/student?$filter=name eq 'Grace' and last_name eq 'Hopper'`)
+    console.log(`get student which name is equal Grace and last_name is equal Hopper${JSON.stringify(response.data, null, 2)}`);
+
+}
+
+
+async function extendedStudentExamples1() {
+
+    // count all students
+    await httpClient.get(`${HOST}/university/student/$count`)
+    // get top 5 students
+    await httpClient.get(`${HOST}/university/student?$top=5`)
+    // get skip 10 students top 5 students
+    await httpClient.get(`${HOST}/university/student?$skip=10&$top=5`)
+
+    // get top 5 students ordered by name ascending
+    await httpClient.get(`${HOST}/university/student?$orderby=name asc&$top=5`)
+    // get top 5 students ordered by name descending
+    await httpClient.get(`${HOST}/university/student?$orderby=name desc&$top=5`)
+    // get top 5 students after skip 10 ordered by name ascending
+    await httpClient.get(`${HOST}/university/student?$orderby=name asc&$top=5&$skip=10`)
+
+
+    // get top 5 students ordered by name ascending
+    await httpClient.get(`${HOST}/university/student?$orderby=name asc&$top=5&$select=id,name`)
+
+
+    // get students which name starts with A
+    httpClient.get(`${HOST}/university/student?$filter=startswith(name,'A')`)
+    // get students which id >= 35 and <= 45
+    httpClient.get(`${HOST}/university/student?$filter=id ge 35 and id le 45`)
+    // get student which name is equal Grace
+    httpClient.get(`${HOST}/university/student?$filter=name eq 'Grace'`)
+    // get student which name is equal Grace and last_name is equal Hopper
+    httpClient.get(`${HOST}/university/student?$filter=name eq 'Grace' and last_name eq 'Hopper'`)
+
 }
 
 async function filteredStudentExample() {
 
     // create one student with name and last_name
-    await axios.post(HOST + "/university/student", { name: "Grace", last_name: "Hopper" }).then((response) => {
-        console.log(`create one student with name and last_name: ${JSON.stringify(response.data, null, 2)}`);
-    })
+    let response = await httpClient.post(`${HOST}/university/student`, { name: "Grace", last_name: "Hopper" })
+    console.log(`create one student with name and last_name: ${JSON.stringify(response.data, null, 2)}`);
+
 
     // get student which name is equal Grace and last_name is equal Hopper
-    await axios.get(HOST + "/university/student?$filter=name eq 'Grace' and last_name eq 'Hopper'").then((response) => {
-        console.log(`get student which name is equal Grace and last_name is equal Hopper: ${JSON.stringify(response.data, null, 2)}`);
-    })
+    response = await httpClient.get(`${HOST}/university/student?$filter=name eq 'Grace' and last_name eq 'Hopper'`)
+    console.log(`get student which name is equal Grace and last_name is equal Hopper: ${JSON.stringify(response.data, null, 2)}`);
+
 
     // patch students which name is equal Grace and last_name is equal Hopper
-    await axios.patch(HOST + "/university/student?$filter=name eq 'Grace' and last_name eq 'Hopper'", { name: 'Gracy' }).then((response) => {
-        console.log(`patch students which name is equal Grace and last_name is equal Hopper: ${JSON.stringify(response.data, null, 2)}`);
-    })
+    response = await httpClient.patch(`${HOST}/university/student?$filter=name eq 'Grace' and last_name eq 'Hopper'`, { name: "Gracy" })
+    console.log(`patch students which name is equal Grace and last_name is equal Hopper: ${JSON.stringify(response.data, null, 2)}`);
+
 
     // get student which name is equal Gracy and last_name is equal Hopper
-    await axios.get(HOST + "/university/student?$filter=name eq 'Gracy' and last_name eq 'Hopper'").then((response) => {
-        console.log(`get student which name is equal Gracy and last_name is equal Hopper: ${JSON.stringify(response.data, null, 2)}`);
-    })
+    response = await httpClient.get(`${HOST}/university/student?$filter=name eq 'Gracy' and last_name eq 'Hopper'`)
+    console.log(`get student which name is equal Gracy and last_name is equal Hopper: ${JSON.stringify(response.data, null, 2)}`);
+
 
     // delete students which name is equal Gracy and last_name is equal Hopper
-    await axios.delete(HOST + "/university/student?$filter=name eq 'Gracy' and last_name eq 'Hopper'").then((response) => {
-        console.log(`delete students which name is equal Gracy and last_name is equal Hopper`);
-    })
+    response = await httpClient.delete(`${HOST}/university/student?$filter=name eq 'Gracy' and last_name eq 'Hopper'`)
+    console.log(`delete students which name is equal Gracy and last_name is equal Hopper`);
+
 
     // get student which name is equal Grace and last_name is equal Hopper - should be empty now
-    await axios.get(HOST + "/university/student?$filter=name eq 'Gracy' and last_name eq 'Hopper'").then((response) => {
-        console.log(`get student which name is equal Gracy and last_name is equal Hopper: ${JSON.stringify(response.data, null, 2)}`);
-    })
+    response = await httpClient.get(`${HOST}/university/student?$filter=name eq 'Gracy' and last_name eq 'Hopper'`)
+    console.log(`get student which name is equal Gracy and last_name is equal Hopper: ${JSON.stringify(response.data, null, 2)}`);
+
 
 }
 
 
 async function expandedDataModelStudentExample() {
+    let response;
 
     // get student by id 31 and expand relationship is_member_of__campus with nested expand campus
-    await axios.get(HOST + "/university/student(31)?$expand=is_member_of__campus/campus").then((response) => {
-        console.log(`get student by id 31 and expand relationship is_member_of__campus with nested expand campus ${JSON.stringify(response.data, null, 2)}`);
-    })
+    response = await httpClient.get(`${HOST}/university/student(31)?$expand=is_member_of__campus/campus`)
+
+    console.log(`get student by id 31 and expand relationship is_member_of__campus with nested expand campus ${JSON.stringify(response.data, null, 2)}`);
 
     // get student by id 31 and expand relationship studies__subject with nested expand subject
-    await axios.get(HOST + "/university/student(31)?$expand=studies__subject/subject").then((response) => {
-        console.log(`get student by id 31 and expand relationship studies__subject with nested expand subject ${JSON.stringify(response.data, null, 2)}`);
-    })
+    response = await httpClient.get(`${HOST}/university/student(31)?$expand=studies__subject/subject`)
 
-    // get all students that are studying subject with name 'physics'
-    await axios.get(HOST + "/university/student?$expand=studies__subject/subject&$filter=studies__subject/subject/name eq 'physics'").then((response) => {
-        console.log(`get all students that are studying subject with name 'physics' ${JSON.stringify(response.data, null, 2)}`);
-    })
+    console.log(`get student by id 31 and expand relationship studies__subject with nested expand subject ${JSON.stringify(response.data, null, 2)} `);
 
-    // get all students that are member of campus 'Faculty of Quantum Physics' and expand relationship is_member_of__campus with nested expand campus
-    await axios.get(HOST + "/university/student?$expand=is_member_of__campus/campus&$filter=is_member_of__campus/campus/name eq 'Faculty of Quantum Physics'").then((response) => {
-        console.log(`get all students that are member of campus 'Faculty of Quantum Physics' and expand relationship is_member_of__campus with nested expand campus ${JSON.stringify(response.data, null, 2)}`);
-    })
+
+    // get student by id 31 and expand relationship studies__subject with nested expand subject
+    response = await httpClient.get(`${HOST}/university/student(31)?$expand=studies__subject/subject,is_member_of__campus/campus`)
+
+    console.log(`get student by id 31 and expand relationship studies__subject with nested expand subject ${JSON.stringify(response.data, null, 2)} `);
+
+
+    // get all students that are studying subject with name "physics"
+    response = await httpClient.get(`${HOST}/university/student?$top=1&$expand=studies__subject/subject&$filter=studies__subject/subject/name eq 'physics'`)
+
+    console.log(`get all students that are studying subject with name "physics" ${JSON.stringify(response.data, null, 2)} `);
+
+    // get all students that are member of campus "Faculty of Quantum Physics" and expand relationship is_member_of__campus with nested expand campus
+    response = await httpClient.get(`${HOST}/university/student?$top=2&$expand=is_member_of__campus/campus&$filter=is_member_of__campus/campus/name eq 'Faculty of Quantum Physics'`)
+    console.log(`get all students that are member of campus "Faculty of Quantum Physics" and expand relationship is_member_of__campus with nested expand campus ${JSON.stringify(response.data, null, 2)} `);
+
+
+
+
 }
 
 
 
 async function run() {
     await initPine();
-    await pingServer();
+    // await createSubjectCampusExample();
     await createCampusesAndStudents();
     await createStudentsExample();
-    await basicStudentExample();
-    await extendedStudentExamples();
-    await filteredStudentExample();
+    // await basicStudentExample();
+    // await extendedStudentExamples();
+    // await extendedStudentExamples1();
+    // await filteredStudentExample();
     await expandedDataModelStudentExample();
     await deInitPine();
 }
