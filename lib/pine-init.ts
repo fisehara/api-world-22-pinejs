@@ -1,22 +1,20 @@
 import express from 'express';
-import { Request, Response } from 'express';
 import { exit } from 'process';
 import * as pine from '@balena/pinejs';
 import { Server } from 'http';
 
 
-
 export async function init(
 	initConfig: pine.ConfigLoader.Config,
+	app: express.Application,
 	initPort: number,
 	deleteDb: boolean = false,
 ) {
 	let server: Server | undefined;
-	const app = express();
 	app.use(express.urlencoded({ extended: true }));
 	app.use(express.json());
 
-	app.use('/ping', (req: Request, res: Response) => {
+	app.use('/ping', (req: express.Request, res: express.Response) => {
 		res.status(200).send("pong");
 	});
 
@@ -35,7 +33,7 @@ export async function init(
 	}
 }
 
-async function cleanInit(deleteDb: boolean = false) {
+export async function cleanInit(deleteDb: boolean = false) {
 	if (!deleteDb) {
 		return;
 	}
