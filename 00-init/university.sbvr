@@ -1,0 +1,14 @@
+Term: name
+	Concept Type: Short Text (Type)
+Term: credit
+	Concept Type: Integer (Type)
+Term: subject
+Fact Type: subject has name
+	Necessity: each subject has exactly one name
+	Necessity: each name is of exactly one subject
+Fact Type: subject has credit
+	Necessity: each subject has at most one credit
+Term: campus
+Fact Type: campus has name
+	Necessity: each campus has exactly one name
+	Necessity: each name is of exactly one campus

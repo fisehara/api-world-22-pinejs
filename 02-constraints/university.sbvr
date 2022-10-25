@@ -28,3 +28,7 @@ Term: semester credit
 	Concept Type: Integer (Type)
 Fact Type: student earns semester credit
 	Necessity: each student earns at most one semester credit
+	Necessity: each student that earns a semester credit, earns a semester credit that is greater than or equal to 1 and is less than or equal to 16.
+
+Rule: It is necessary that each student that is member of a campus, is member of a campus that offers a subject.
+Rule: It is necessary that each student that is member of a campus that offers a subject1, studies the subject1.
