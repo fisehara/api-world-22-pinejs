@@ -37,7 +37,7 @@ npm install
 
 ## Exiting npm targets to run the examples
 - `npm run 00-init`
-- `npm run 01-basic` 
+- `npm run 01-basics` 
 - `npm run 02-constraints`
 
 

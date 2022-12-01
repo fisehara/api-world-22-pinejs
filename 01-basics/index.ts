@@ -3,6 +3,12 @@ import axios from "axios";
 import express from 'express';
 import { init } from "../lib/pine-init";
 import { faker } from "@faker-js/faker";
+import { initS3Storage } from 'ramirogm-pinejs-s3-storage';
+import { getFileSize } from "../lib/get-file-size";
+const path = require('path');
+const FormData = require('form-data');
+const fs = require('fs');
+
 // namespacing axios to be the http client.
 const httpClient = axios;
 
@@ -11,6 +17,7 @@ const HOST = `http://localhost:${PORT}`
 
 async function initPine(): Promise<Server | undefined> {
 
+    initS3Storage();
     const app = express();
     // load the config file containing the sbvr path
     const initConfig = await import("./config");
@@ -29,16 +36,20 @@ async function deInitPine(pineInstance?: Server) {
 }
 
 // create campuses and subjects
+const paths = [
+    path.join(__dirname, '../resources/PHY4604-Quantum-Mechanics-syllabus.pdf'),
+    path.join(__dirname, '../resources/physics-101-syllabus.pdf'),
+]
 const campuses = [
-    { campusId: undefined, subjectId: undefined, name: "Faculty of Quantum Physics", subject: "physics" },
-    { campusId: undefined, subjectId: undefined, name: "Department of Theoretical Physics", subject: "physics" },
+    { campusId: undefined, subjectId: undefined, name: "Faculty of Quantum Physics", subject: "physics", syllabusDocFile: { data: fs.createReadStream(paths[0]), filename: 'PHY4604-Quantum-Mechanics-syllabus.pdf', contentType: 'application/pdf'} },
+    { campusId: undefined, subjectId: undefined, name: "Department of Theoretical Physics", subject: "physics", syllabusDocFile: { data: fs.createReadStream(paths[1]), filename: 'physics-101-syllabus.pdf', contentType: 'application/pdf'} },
     { campusId: undefined, subjectId: undefined, name: "Department of Linguistics and Philosophy", subject: "linguistics" },
     { campusId: undefined, subjectId: undefined, name: "Faculty of Natural Language Processing", subject: "linguistics" },
     { campusId: undefined, subjectId: undefined, name: "Faculty of Oceanography", subject: "biology" },
     { campusId: undefined, subjectId: undefined, name: "Department of Plant Biology, Ecology, and Evolution", subject: "biology" }
 ]
 
-async function createCampusesAndStudents() {
+async function createCampusesAndSubjects() {
     // create subjects and campuses
     for (const campus of campuses) {
         // try if the subject already exists, otherwise create it.
@@ -46,11 +57,25 @@ async function createCampusesAndStudents() {
         campus["subjectId"] = response?.data?.d?.[0]?.id
 
         if (!campus["subjectId"]) {
-            response = await httpClient.post(`${HOST}/university/subject`, { name: campus.subject })
+            if ( !campus.syllabusDocFile ) {
+                response = await httpClient.post(`${HOST}/university/subject`, { name: campus.subject })
+            } else {
+                const form = new FormData();
+                form.append('name', campus.subject, {contentType: 'text/plain'});
+                form.append('syllabus_doc', campus.syllabusDocFile.data, {filename: campus.syllabusDocFile.filename, contentType: campus.syllabusDocFile.contentType});
+                const formHeaders = form.getHeaders();
+
+                response = await httpClient.post(`${HOST}/university/subject`, form, {
+                    headers: {
+                      ...formHeaders,
+                    }});
+                console.log(`subject with syllabus is ${JSON.stringify(response.data, null, 2)}`);
+            }
+
             campus["subjectId"] = response?.data?.id
         }
 
-        // try if the subject already exists, otherwise create it.
+        // try if the campus already exists, otherwise create it.
         response = await httpClient.get(`${HOST}/university/campus?$filter=name eq '${campus.name}'`)
         campus["campusId"] = response?.data?.d?.[0]?.id
 
@@ -69,7 +94,7 @@ async function createCampusesAndStudents() {
 const createStudent = async (name: string, last_name: string, campusId?: number, subjectId?: number): Promise<number | undefined> => {
     let response = await httpClient.post(`${HOST}/university/student`, { name: name, last_name: last_name })
     let studentId = response?.data?.id
-
+    console.log(`createStudent studentId: ${studentId}`);
     if (subjectId) {
         await httpClient.post(`${HOST}/university/student__studies__subject`, { student: studentId, studies__subject: subjectId })
     }
@@ -218,14 +243,43 @@ async function expandedDataModelStudentExample() {
 }
 
 
+
+async function basicWebResourceExample() {
+    let response;
+    console.log("basicWebResourceExample");
+    // create one student
+    let studentId = await createStudent("Elon", "Musk", 1, 1);
+
+    response = await httpClient.get(`${HOST}/university/student(${studentId})`)
+    console.log(`get student by ${studentId} : ${JSON.stringify(response.data, null, 2)}`);
+
+    response = await httpClient.get(`${HOST}/university/student(${studentId})?$expand=studies__subject/subject`)
+    console.log(`studies__subject/subject ${studentId} studies__subject/subject : ${JSON.stringify(response.data, null, 2)}`);
+    const url = response.data.d[0].studies__subject[0].subject[0].syllabus_doc.href;
+    console.log(`Subject syllabus URL: ${url}`);
+    // Now get the file and test that is as expected
+    response = await httpClient.get(url, {
+        responseType: 'arraybuffer',
+        headers: {
+            'Accept': '*/*'
+        }
+    });
+    
+    const receivedSize = response.data.length;
+    const expectedSize = getFileSize(paths[0]);
+    console.log(`File size ${expectedSize} and received size ${receivedSize} ${expectedSize === receivedSize ? " match " : " **DON'T MATCH**" }`);
+}
+
+
 async function run() {
     let pineInstance = await initPine();
     await basicStudentExample();
-    await createCampusesAndStudents();
+    await createCampusesAndSubjects();
     await createStudentsExample();
     await extendedStudentExamples();
     await filteredStudentExample();
     await expandedDataModelStudentExample();
+    await basicWebResourceExample();
     await deInitPine(pineInstance);
 }
 
