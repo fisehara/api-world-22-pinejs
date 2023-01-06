@@ -3,7 +3,6 @@ import { exit } from 'process';
 import * as pine from '@balena/pinejs';
 import { Server } from 'http';
 
-
 export async function init(
 	initConfig: pine.ConfigLoader.Config,
 	app: express.Application,

@@ -4,9 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "app": "trap 'docker-compose down ; echo Stopped ; exit 0' SIGINT; docker-compose up -d && sleep 2 && DATABASE_URL=postgres://docker:docker@localhost:5431/postgres ts-node",
+    "app": "trap 'docker-compose down ; echo Stopped ; exit 0' SIGINT; docker-compose up -d && sleep 2 && DATABASE_URL=postgres://docker:docker@localhost:5431/postgres TRANSACTION_TIMEOUT_MS=120000 PINEJS_STORAGE_ENGINE=S3 S3_UPLOAD_QUEUE_SIZE=10 S3_UPLOAD_PART_SIZE=100000000 S3_ENDPOINT=http://localhost:43680 S3_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE S3_SECRET_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY ts-node",
+    "app-mysql": "trap 'docker-compose down ; echo Stopped ; exit 0' SIGINT; docker-compose up -d && sleep 2 && DATABASE_URL=mysql://docker:docker@localhost:3306/apiworld TRANSACTION_TIMEOUT_MS=120000 PINEJS_STORAGE_ENGINE=S3 S3_UPLOAD_QUEUE_SIZE=10 S3_UPLOAD_PART_SIZE=100000000 S3_ENDPOINT=http://localhost:43680 S3_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE S3_SECRET_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY ts-node",
     "00-init": "npm run app -- 00-init/index.ts",
     "01-basics": "npm run app -- 01-basics/index.ts",
+    "01-basics-mysql": "npm run app-mysql -- 01-basics/index.ts",
     "02-constraints": "npm run app -- 02-constraints/index.ts",
     "generate-static-sql": "node node_modules/@balena/pinejs/bin/sbvr-compiler.js compile",
     "01-basics-generate-sql": "npm run generate-static-sql -- ./01-basics/university.sbvr ./01-basics/university.sql",
@@ -15,7 +17,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@balena/pinejs": "^14.51.0",
+    "@balena/pinejs": "14.55.0-build-web-resource-2-9b9795b30d4dc81d48091204c4bd5227a5f188b1-1",
+    "@balena/pinejs-s3-storage": "1.0.5",
     "@faker-js/faker": "^7.6.0",
     "axios": "^1.1.2",
     "express": "^4.18.2",

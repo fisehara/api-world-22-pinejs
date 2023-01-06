@@ -1,5 +1,35 @@
 # API World 2022 PineJS Example Repository
 
+## Quickstart for WebResources
+
+run
+
+```sh
+npm run 01-basics
+```
+
+This will:
+
+- start postgresql
+- start minio-server, and a minio-client that creates a bucket
+- setup the env vars to use S3 storage
+- run the `01-basic` example ( See below )
+
+The `01-basic` example defines a WebResource, and the code tests that it can upload and retrieve a PDF file.
+
+This is an extract of the model:
+
+```
+Fact Type: subject has syllabus doc
+	Necessity: each subject has at most one syllabus doc.
+	Necessity: each syllabus doc is of exactly one subject.
+	Necessity: each subject that has a syllabus doc, has a syllabus doc that has a Content Type (Type) that is equal to "application/pdf".
+```
+
+
+---
+
+
 This repository consists of examples for exploring and trying out pinejs. Each example is a single independent node application that runs pinejs as an application server and demonstrates queries to this server. The data models and configurations in each step build on top of the previous step but are executable self contained without cross-references.
 
 # Examples contained in this repository
@@ -37,7 +67,7 @@ npm install
 
 ## Exiting npm targets to run the examples
 - `npm run 00-init`
-- `npm run 01-basic` 
+- `npm run 01-basics` 
 - `npm run 02-constraints`
 
 
