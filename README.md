@@ -5,7 +5,7 @@
 run
 
 ```sh
-DATABASE_URL=postgres://docker:docker@localhost:5431/test2 TRANSACTION_TIMEOUT_MS=120000 PINEJS_STORAGE_ENGINE=S3 S3_UPLOAD_QUEUE_SIZE=10 S3_UPLOAD_PART_SIZE=100000000 npm run 01-basic
+npm run 01-basics
 ```
 
 This will:
