@@ -3,7 +3,7 @@ import axios from "axios";
 import express from 'express';
 import { init } from "../lib/pine-init";
 import { faker } from "@faker-js/faker";
-import { initS3Storage } from 'ramirogm-pinejs-s3-storage';
+import { initS3Storage } from '@balena/pinejs-s3-storage';
 import { getFileSize } from "../lib/get-file-size";
 const path = require('path');
 const FormData = require('form-data');

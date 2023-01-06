@@ -1,11 +1,11 @@
-Term: syllabus doc
-	  Concept Type: WebResource (Type)
-
 Term: name
 	Concept Type: Short Text (Type)
 
 Term: credit
 	Concept Type: Integer (Type)
+
+Term: syllabus doc
+	  Concept Type: WebResource (Type)
 
 Term: subject
 Fact Type: subject has name
@@ -14,7 +14,9 @@ Fact Type: subject has name
 Fact Type: subject has credit
 	Necessity: each subject has at most one credit
 Fact Type: subject has syllabus doc
-	Necessity: each subject has at most one syllabus doc
+	Necessity: each subject has at most one syllabus doc.
+	Necessity: each syllabus doc is of exactly one subject.
+	Necessity: each subject that has a syllabus doc, has a syllabus doc that has a Content Type (Type) that is equal to "application/pdf".
 
 Term: campus
 Fact Type: campus has name
